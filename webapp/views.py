@@ -76,9 +76,9 @@ def UserLogin(request):
                             "channelType": "CORPORATE"
                         }
                     }
-
                     resp = requests.post(url=URL, headers=transaction_headers, json=json, verify=False)
                     resp = resp.json()
+                    print(resp)
                     if resp['response']['otpEnable']:
                         cache.set('session_token', f"{resp['response']['session_token']}", timeout=600)
                         json = {
@@ -100,7 +100,7 @@ def UserLogin(request):
                         messages.error(request, message=resp['response']['message'])
                         return redirect("webapp:login")
             else:
-                messages.error(request, message="Username/Passowrd not registered")
+                messages.error(request, message="Username/Password not registered")
                 return redirect("webapp:login")
         except Exception as e:
             messages.error(request, message="An error occurred. Please try again.")
