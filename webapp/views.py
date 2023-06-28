@@ -372,11 +372,16 @@ def vendorBankDetails(request):
 def searchvendorBankDetails(request):
     if request.method == 'GET':
         vendor = request.GET['vendor']
-        data = BankDetails.objects.filter(vendor_id=vendor).values('account_no', 'account_name', 'vendor_email',
-                                                                   'vendor_id', 'vendor_mobile_number', 'sort_code'
-                                                                   , 'branch', 'bank_name')
+        data = BankDetails.objects.filter(vendor_id=vendor).all()
 
-        return JsonResponse({'vendorinfo': list(data)}, status=200)
+
+        paginator = Paginator(data, 10)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        context = {
+            'bank_details': page_obj,
+        }
+        return render(request, 'vendor-bank-details.html', context)
 
 
 @login_required(login_url="/")
@@ -481,7 +486,10 @@ def vendor_account_details(request):
                                                                                    'bank_name')
     return JsonResponse({'account_details': list(data)}, status=200)
 
-
+def change_date(date_str):
+    date_obj = datetime.datetime.strptime(date_str, "%Y%m%d")
+    formatted_date = date_obj.strftime("%d-%m-%Y")
+    return formatted_date
 
 @login_required(login_url='/')
 @user_is_approver
@@ -494,19 +502,21 @@ def homepage(request):
     payment_transactions_raw = ms_session.query(appym).filter(appym.IDVEND.in_(vendors),
                                                               not_(appym.IDINVC.in_(processed))).order_by(
         appym.CNTBTCH.desc()).all()
+
     batch_list = [batch.CNTBTCH for batch in payment_transactions_raw]
     data = ms_session.query(aptcr).filter(aptcr.CNTBTCH.in_(batch_list)).order_by(aptcr.CNTBTCH.desc()).all()
     for payment, record in zip(payment_transactions_raw, data):
+        date = change_date(str(payment.DATERMIT))
+        amount = round(payment.AMTPAYM,2)
         transactions = {
             'IDINVC': (payment.IDINVC).strip(),
-            'DATERMIT': payment.DATERMIT,
-            'AMTPAYM': payment.AMTPAYM,
+            'DATERMIT': date,
+            'AMTPAYM': amount,
             'IDVEND': (payment.IDVEND).strip(),
             'REFERENCE': (record.TEXTRMIT).strip()
 
         }
         payment_transactions.append(transactions)
-
     paginator = Paginator(payment_transactions, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)

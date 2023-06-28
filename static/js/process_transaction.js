@@ -55,23 +55,25 @@ function addEventListenersToSelect(rows) {
 
 function addCheckBoxandSelectValues(rows) {
     rows.forEach(row => {
-        const value = row.id;
-        const inputElement = row.querySelector('input[name="transaction"]');
-        const selectTags = row.querySelectorAll('select');
-        const accountName = sessionStorage.getItem("accountName-" + value);
-        const transactionType = sessionStorage.getItem("transactionType-" + value);
-        const checkbox = sessionStorage.getItem(value)
-        if (accountName && transactionType) {
-            if (checkbox) {
-                inputElement.checked = true
+        if (row.id) {
+            const value = row.id;
+            const inputElement = row.querySelector('input[name="transaction"]');
+            const selectTags = row.querySelectorAll('select');
+            const accountName = sessionStorage.getItem("accountName-" + value);
+            const transactionType = sessionStorage.getItem("transactionType-" + value);
+            const checkbox = sessionStorage.getItem(value)
+            if (accountName && transactionType) {
+                if (checkbox) {
+                    inputElement.checked = true
+                }
+                selectTags[0].value = accountName;
+                selectTags[1].value = transactionType;
+                inputElement.removeAttribute('disabled');
+            } else {
+                selectTags[0].value = ''; // Reset the select values if not found in sessionStorage
+                selectTags[1].value = '';
+                inputElement.setAttribute('disabled', 'disabled');
             }
-            selectTags[0].value = accountName;
-            selectTags[1].value = transactionType;
-            inputElement.removeAttribute('disabled');
-        } else {
-            selectTags[0].value = ''; // Reset the select values if not found in sessionStorage
-            selectTags[1].value = '';
-            inputElement.setAttribute('disabled', 'disabled');
         }
     });
 }
@@ -79,12 +81,13 @@ function addCheckBoxandSelectValues(rows) {
 
 function addEventListenerToCheckboxes(checkboxes) {
     checkboxes.forEach(cb => {
+        const rowData = {
+            values: [],
+        };
         cb.addEventListener('change', () => {
             if (cb.checked) {
                 const row = cb.closest('tr');
-                const rowData = {
-                    values: [],
-                };
+
                 // Iterate over each cell
                 for (let j = 0; j < row.cells.length; j++) {
                     const cell = row.cells[j];
@@ -120,8 +123,21 @@ function addEventListenerToCheckboxes(checkboxes) {
                 addSelectedVendorsInvoiceNumber(cb.value);
                 sessionStorage.setItem(value, checked);
                 saveSelectedRows('table-body');
+            } else {
+                const value = cb.value;
+                removeSelectedVendorsInvoiceNumber(cb.value);
+                sessionStorage.removeItem(value);
+                saveSelectedRows('table-body');
+                processBtn.setAttribute('disabled', 'disabled');
+                rowData.values = []
+                // Remove the row data from the combined values array
+                combinedValues = combinedValues.filter(item => JSON.stringify(item) !== JSON.stringify(rowData));
+
+                // Disable the process button if no checkboxes are checked
             }
+            console.log(combinedValues)
         })
+
     })
 }
 
@@ -143,6 +159,7 @@ function scrollToTop() {
         behavior: "smooth" // Optional: Add smooth scrolling animation
     });
 }
+
 
 function scrollToBottom() {
     window.scrollTo({
@@ -191,6 +208,13 @@ function addSelectedVendorsInvoiceNumber(invoiceId) {
     if (!selectedVendorsInvoiceNumber.includes(invoiceId)) {
         selectedVendorsInvoiceNumber.push(invoiceId);
 
+    }
+}
+
+function removeSelectedVendorsInvoiceNumber(invoiceId) {
+    const index = selectedVendorsInvoiceNumber.indexOf(invoiceId);
+    if (index !== -1) {
+        selectedVendorsInvoiceNumber.splice(index, 1);
     }
 }
 
@@ -287,6 +311,27 @@ searchBtn.addEventListener('click', (e) => {
 
     fetchSearchResults(query_params, selectedPageNumber);
 })
+
+
+filterOptions.addEventListener('change', () => {
+    searchInput.removeAttribute('readonly');
+
+    if (filterOptions.value === 'date') {
+        // Destroy any existing Flatpickr instance
+        if (searchInput._flatpickr) {
+            searchInput._flatpickr.destroy();
+        }
+        searchInput._flatpickr = flatpickr(searchInput, {
+            dateFormat: 'Ymd',
+
+        });
+    } else {
+        // Destroy Flatpickr if it's not the "date" option
+        if (searchInput._flatpickr) {
+            searchInput._flatpickr.destroy();
+        }
+    }
+});
 
 function fetchSearchResults(queryParams, page) {
     const searchInput = queryParams[0];

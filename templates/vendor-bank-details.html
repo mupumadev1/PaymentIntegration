@@ -1,11 +1,12 @@
 {% extends 'base2.html' %}
 {% load static %}
 {% block content %}
-    <div class="card p-2">
+
+
         <div class="container pt-5">
-            <div class="row mb-3 px-2">
-                <div class="col pb-5 ">
-                    <h3 style="position: absolute;left: 100px;font-weight: 600;font-size: 28px;">AP Vendors</h3>
+            <div class="row mb-3 ">
+                <div class="pb-5 ">
+                    <h3 style="position: absolute;left: 100px;font-weight: 600;font-size: 28px;font-family: Roboto, serif;">AP Vendors</h3>
                     <form style="position: absolute;right: 100px;">
                         <div class="input-group">
                             <input type="text" placeholder="Search by ID" id="vendor-search" name="vendor-search"
@@ -17,7 +18,8 @@
                         </div>
                     </form>
                 </div>
-                <table class="table table-hover mt-3" style="table-layout: fixed;">
+               <div class="card p-2 mt-5 shadow-sm border-0">
+                <table class="table table-hover mt-3 " style="table-layout: fixed;">
                     <thead class="text-center" style="font-family: 'Roboto Slab', serif">
                     <tr>
                         <th scope="col">Account No</th>
@@ -66,4 +68,8 @@
         </div>
     </div>
     </div>
+{% endblock %}
+{% block extra-scripts %}
+    <script src="{% static 'js/processBankDetails.js' %}"></script>
+
 {% endblock %}

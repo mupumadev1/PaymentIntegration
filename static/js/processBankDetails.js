@@ -4,14 +4,10 @@ const accountname = document.getElementById('accountname')
 const bankNameSelect = document.getElementById('bankNameSelect')
 const branchDescSelect = document.getElementById('branchDesc');
 const branchNameDv = document.getElementById('branchNameSelectDiv')
-const accountNumber = document.getElementById('accountno')
 const submitBtn = document.getElementById('submit')
-const accInput = document.getElementById('acc_if_zicb')
-const zicbDiv = document.getElementById('zicb_bank_details')
-const  zicbBranchName = document.getElementById('zicb_branch_name')
-const zicbSortCode = document.getElementById('zicb_sort_code')
-const detailsForm = document.getElementById('bankDetailsForm')
-
+const accInput = document.getElementById('account_no')
+const vendorSearch = document.getElementById('vendor-search')
+const vendorSearchButton = document.getElementById('search-button')
 let groupedData = {};
 const selectedBank = []
 
@@ -36,6 +32,20 @@ service_IDs = {
 }
 
 loadBankList();
+
+vendorSearchButton.addEventListener('click', () => {
+    let vendorID = vendorSearch.value
+    fetch(`bank_details/search?vendor=${vendorID}`)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const newDoc = parser.parseFromString(html, 'text/html');
+            const newTable = newDoc.getElementById('table-body');
+            console.log(newTable)
+            const tableBody = document.getElementById('table-body');
+            tableBody.replaceWith(newTable);
+        })
+})
 
 function loadBankList() {
     fetch('loadBanks')
@@ -71,7 +81,7 @@ function addBankServiceID(bank) {
     }
 }
 
-accountNumber.addEventListener('blur', (ev) => {
+accInput.addEventListener('blur', (ev) => {
     const bankN = selectedBank[0];
     console.log(bankN)
     if (bankN === 'ZICB') {
@@ -82,17 +92,21 @@ accountNumber.addEventListener('blur', (ev) => {
                 if (data.response === false) {
                     submitBtn.setAttribute('disabled', 'disabled')
                     accountname.value = ''
+                    branchDescSelect.innerHTML = ''
+                    sortCodeInput.value = ''
 
                 } else {
                     accountName = data.response[0].accountTitle
                     console.log(accountName)
                     accountname.value = accountName
                     accountname.readOnly = true
-                    zicbBranchName.value = data.response[0].branchname
-                    zicbSortCode.value = data.response[0].brnCode
-                    zicbDiv.classList.remove('d-none')
+                    branchDescSelect.innerHTML = ''
+                    const option = document.createElement('option');
+                    option.value = data.response[0].branchname
+                    option.textContent = data.response[0].branchname
+                    branchDescSelect.appendChild(option);
+                    sortCodeInput.value = data.response[0].brnCode
                     submitBtn.removeAttribute('disabled')
-
 
 
                 }
@@ -114,14 +128,23 @@ accountNumber.addEventListener('blur', (ev) => {
     }
 })
 bankNameSelect.addEventListener('change', (ev) => {
-
     const bankName = ev.target.value
     addBankServiceID(bankName.toUpperCase())
     if (bankName === 'ZICB') {
-        accInput.classList.remove('d-none');
-    /*} else {
         branchNameDv.classList.remove('d-none')
+        sortCodeDiv.classList.remove('d-none')
         branchDescSelect.innerHTML = ''
+        const option = document.createElement('option');
+        option.value = 'ZICB'
+        option.textContent = 'ZICB'
+        option.selected = true
+        branchDescSelect.appendChild(option);
+        sortCodeInput.value = '101';
+        sortCodeInput.readOnly = true
+    } else {
+        branchNameDv.classList.remove('d-none')
+        sortCodeInput.value = ''
+        branchDescSelect.innerHTML = "<option></option>"
         const bankEntries = groupedData[bankName]
         for (const entry of bankEntries) {
             const branchDesc = entry.branchDesc;
@@ -133,11 +156,10 @@ bankNameSelect.addEventListener('change', (ev) => {
         branchDescSelect.addEventListener('change', (ev) => {
             sortCodeDiv.classList.remove('d-none')
             const branchDesc = ev.target.value
-            const sortCode = getSortCode(bankName, branchDesc); // Get the sort code based on the selected bank name and branch description
-            sortCodeInput.value = sortCode;
+            sortCodeInput.value = getSortCode(bankName, branchDesc);
             sortCodeInput.readOnly = true
 
-        })*/
+        })
     }
 })
 

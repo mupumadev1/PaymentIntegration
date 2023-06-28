@@ -10,7 +10,7 @@
             {% endfor %}
         {% endif %}
 
-        <div class="formbold-form-wrapper">
+        <div class="formbold-form-wrapper shadow-sm">
             <form action="{% url 'webapp:upload-bank-details' %}" method="POST" id="bankDetailsForm">
                 {% csrf_token %}
                 <div class="formbold-form-title">
@@ -53,33 +53,18 @@
                 <div class="formbold-input-flex" id="bank_dropdown">
                     <div>
                         <label class="formbold-form-label">Bank Name</label>
-                        <select id="bankNameSelect" name="bank_name" class="form-select">
+                        <select id="bankNameSelect" name="bank_name" class="form-select" style="padding: 13px 22px; width:97%">
                             <option></option>
                             <option value="ZICB">ZICB</option>
                         </select>
                     </div>
-                    <div id="acc_if_zicb" class="d-none" {% if form.account_no.errors %} class="error" {% endif %}>
-                        <label class="formbold-form-label">{{ form.account_no.label }} </label>
-                        {% render_field form.account_no type="text" name="account_no" id="accountno" class="formbold-form-input" %}
-                        {{ form.account_no.errors }}
-                    </div>
                     <div id="branchNameSelectDiv" class="d-none">
                         <label class="formbold-form-label">Branch Name</label>
-                        <select id="branchDesc" name="branch" class="form-select">
+                        <select id="branchDesc" name="branch" class="form-select" style="padding: 13px 22px; width:97%">
                         </select>
                     </div>
                 </div>
-                <div class="formbold-input-flex d-none" id="zicb_bank_details">
-                    <div>
-                        <label class="formbold-form-label">Branch Name</label>
-                        <input class="formbold-form-input" id="zicb_branch_name" name="branch" readonly>
-                    </div>
-                    <div>
-                        <label class="formbold-form-label">Sort Code</label>
-                        <input class="formbold-form-input" type="text" name="sort_code" maxlength="255" required id="zicb_sort_code">
-                    </div>
-                </div>
-               <!--- <div class="formbold-input-flex d-none" id="sortCodeDiv">
+                <div class="formbold-input-flex d-none" id="sortCodeDiv">
                     <div>
                         <label class="formbold-form-label">Sort Code</label>
                         <input class="formbold-form-input"  name="sort_code" readonly type="text" id="sortcode">
@@ -89,7 +74,7 @@
                         {% render_field form.account_no type="text" name="account_no" id="account_no" class="formbold-form-input" %}
                         {{ form.account_no.errors }}
                     </div>
-                </div>-->
+                </div>
 
                 <button class="formbold-btn" id="submit" disabled>Save
                 </button>
