@@ -14,7 +14,7 @@ engine = sqlalchemy.create_engine(
     "mysql+pymysql://saservice:mJ%40PcJ%21pNVs2%2AAW@10.51.11.183/sageservice?charset=utf8mb4")
 
 msengine = sqlalchemy.create_engine(
-    "mssql+pyodbc://saservice:mJ%40PcJ%21pNVs2%2AAW@10.52.11.50:1433/TSTDAT?driver=ODBC+Driver+17+for+SQL+Server")
+    "mssql+pyodbc://saservice:mJ%40PcJ%21pNVs2%2AAW@10.52.11.50:1433/INFDAT?driver=ODBC+Driver+17+for+SQL+Server")
 metadata = MetaData()
 metadata.reflect(msengine, only=['APPYM', 'APVEN', 'APTCR'])
 MS_Base = automap_base(metadata=metadata)

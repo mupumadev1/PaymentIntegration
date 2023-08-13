@@ -32,6 +32,89 @@ service_IDs = {
 }
 
 loadBankList();
+accInput.addEventListener('blur', (ev) => {
+    const bankN = selectedBank[0];
+    console.log(bankN)
+    if (bankN === 'ZICB') {
+        fetch(`verify_account/zicb/?account_no=${ev.target.value}`)
+            .then(response => response.json())
+            .then(data => {
+                let accountName;
+                if (data.response === false) {
+                    submitBtn.setAttribute('disabled', 'disabled')
+                    accountname.value = ''
+                    branchDescSelect.innerHTML = ''
+                    sortCodeInput.value = ''
+
+                } else {
+                    accountName = data.response[0].accountTitle
+                    console.log(accountName)
+                    accountname.value = accountName
+                    accountname.readOnly = true
+                    branchDescSelect.innerHTML = ''
+                    const option = document.createElement('option');
+                    option.value = data.response[0].branchname
+                    option.textContent = data.response[0].branchname
+                    branchDescSelect.appendChild(option);
+                    sortCodeInput.value = data.response[0].brnCode
+                    submitBtn.removeAttribute('disabled')
+
+
+                }
+            })
+    } else {
+        const service_id = service_IDs[bankN]
+        submitBtn.removeAttribute('disabled')
+
+        /*fetch(`verify_account/other/?account_no=${ev.target.value}&service_id=${service_id}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.response === false) {
+                    submitBtn.setAttribute('disabled', 'disabled')
+
+                } else {
+
+                    submitBtn.removeAttribute('disabled')
+                }
+            })*/
+
+    }
+})
+bankNameSelect.addEventListener('change', (ev) => {
+    const bankName = ev.target.value
+    addBankServiceID(bankName.toUpperCase())
+    if (bankName === 'ZICB') {
+        branchNameDv.classList.remove('d-none')
+        sortCodeDiv.classList.remove('d-none')
+        branchDescSelect.innerHTML = ''
+        const option = document.createElement('option');
+        option.value = 'ZICB'
+        option.textContent = 'ZICB'
+        option.selected = true
+        branchDescSelect.appendChild(option);
+        sortCodeInput.value = '101';
+        sortCodeInput.readOnly = true
+    } else {
+        branchNameDv.classList.remove('d-none')
+        sortCodeInput.value = ''
+        branchDescSelect.innerHTML = "<option></option>"
+        const bankEntries = groupedData[bankName]
+        for (const entry of bankEntries) {
+            const branchDesc = entry.branchDesc;
+            const option = document.createElement('option');
+            option.value = branchDesc;
+            option.textContent = branchDesc;
+            branchDescSelect.appendChild(option);
+        }
+        branchDescSelect.addEventListener('change', (ev) => {
+            sortCodeDiv.classList.remove('d-none')
+            const branchDesc = ev.target.value
+            sortCodeInput.value = getSortCode(bankName, branchDesc);
+            sortCodeInput.readOnly = true
+
+        })
+    }
+})
 
 vendorSearchButton.addEventListener('click', () => {
     let vendorID = vendorSearch.value
@@ -81,87 +164,6 @@ function addBankServiceID(bank) {
     }
 }
 
-accInput.addEventListener('blur', (ev) => {
-    const bankN = selectedBank[0];
-    console.log(bankN)
-    if (bankN === 'ZICB') {
-        fetch(`verify_account/zicb/?account_no=${ev.target.value}`)
-            .then(response => response.json())
-            .then(data => {
-                let accountName;
-                if (data.response === false) {
-                    submitBtn.setAttribute('disabled', 'disabled')
-                    accountname.value = ''
-                    branchDescSelect.innerHTML = ''
-                    sortCodeInput.value = ''
-
-                } else {
-                    accountName = data.response[0].accountTitle
-                    console.log(accountName)
-                    accountname.value = accountName
-                    accountname.readOnly = true
-                    branchDescSelect.innerHTML = ''
-                    const option = document.createElement('option');
-                    option.value = data.response[0].branchname
-                    option.textContent = data.response[0].branchname
-                    branchDescSelect.appendChild(option);
-                    sortCodeInput.value = data.response[0].brnCode
-                    submitBtn.removeAttribute('disabled')
-
-
-                }
-            })
-    } else {
-        const service_id = service_IDs[bankN]
-        fetch(`verify_account/other/?account_no=${ev.target.value}&service_id=${service_id}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.response === false) {
-                    submitBtn.setAttribute('disabled', 'disabled')
-
-                } else {
-
-                    submitBtn.removeAttribute('disabled')
-                }
-            })
-
-    }
-})
-bankNameSelect.addEventListener('change', (ev) => {
-    const bankName = ev.target.value
-    addBankServiceID(bankName.toUpperCase())
-    if (bankName === 'ZICB') {
-        branchNameDv.classList.remove('d-none')
-        sortCodeDiv.classList.remove('d-none')
-        branchDescSelect.innerHTML = ''
-        const option = document.createElement('option');
-        option.value = 'ZICB'
-        option.textContent = 'ZICB'
-        option.selected = true
-        branchDescSelect.appendChild(option);
-        sortCodeInput.value = '101';
-        sortCodeInput.readOnly = true
-    } else {
-        branchNameDv.classList.remove('d-none')
-        sortCodeInput.value = ''
-        branchDescSelect.innerHTML = "<option></option>"
-        const bankEntries = groupedData[bankName]
-        for (const entry of bankEntries) {
-            const branchDesc = entry.branchDesc;
-            const option = document.createElement('option');
-            option.value = branchDesc;
-            option.textContent = branchDesc;
-            branchDescSelect.appendChild(option);
-        }
-        branchDescSelect.addEventListener('change', (ev) => {
-            sortCodeDiv.classList.remove('d-none')
-            const branchDesc = ev.target.value
-            sortCodeInput.value = getSortCode(bankName, branchDesc);
-            sortCodeInput.readOnly = true
-
-        })
-    }
-})
 
 function getSortCode(bankName, branchDesc) {
     // Iterate over the grouped data to find the matching bank name and branch description
@@ -174,6 +176,7 @@ function getSortCode(bankName, branchDesc) {
     }
     return ''; // Return an empty string if no matching entry is found
 }
+
 
 /*detailsForm.addEventListener('submit', function(event) {
   event.preventDefault(); // Prevent default form submission

@@ -10,6 +10,7 @@ app_name = 'webapp'
 urlpatterns = [
     path('', views.UserLogin, name='login'),
     path('history/',views.transaction_history, name='transaction-history'),
+    path('download/', views.transaction_history_xls),
     path('account_number/',views.checkAccNumber,name='check-account-number'),
     path('bank_details/upload/verify_account/zicb/',views.zicb_customer_account_number_check),
     path('bank_details/upload/verify_account/other/', views.other_bank_account_number_check),
@@ -25,6 +26,7 @@ urlpatterns = [
     path('bank_details',views.vendorBankDetails,name='bank-details'),
     path('bank_details/search/',views.searchvendorBankDetails,name='search-vendor-bank-details'),
     path('search/', views.get_search_results, name='search-transactions'),
+    path('history-search/', views.get_history_search_results, name='search-transactions-history'),
     path('post-transactions/', views.post_transactions, name='post-transactions'),
     path('logout',views.UserLogout, name='logout'),
     path('bank_details/upload/loadBanks/',views.loadBankList),

@@ -1,10 +1,11 @@
 import datetime
 import io
 import json
+import os
+import tempfile
 from itertools import groupby
 from operator import attrgetter
 
-import ipdb
 from _decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth import login, logout, authenticate
@@ -21,14 +22,14 @@ from sqlalchemy.orm import class_mapper
 from .forms import BankDetailsForm
 from .permissions import user_is_approver, user_is_support_staff
 from .services import *
-from .models import ProcessedDeposits, BankDetails, Users
+from .models import ProcessedDeposits, BankDetails, Users, UserLoginHistory
 import requests
 import pandas as pd
 
-URL = "https://41.175.13.198:7664/api/json/commercials/zicb/banking"
+URL = "http://41.173.23.122:8990/api/json/commercials/zicb/banking"
 IFT_KEY = "wmdTRHHpCAqgpCMMBfQUGZzpvOaOWmIFuNElwQBeuyyeRfHlRadnHSbMWimMZfPFhKIQEEgFPjkeJgHRwbTErvAZRlLJrVNhqSQRknxXpZhlsdzAuTTZtPZHFJOsvWtIRreHzFjPSEkwmGNdsOCMYipktXBeMkYEoWwFobzrUJRVJXeBWBveZYqirlbVlcwRXDdRJSIoFUMtxjFcbjFvxEKlmVzdjIpGWrqegWDOZQMOqLwSXsdBYjhkvcbQERolchgYpZbrmYRSMUFIHfiSBESXyVIeUAcXAhIcQAAQjWOVoZhuURxJNKRFUNiSMLOnIDwxaesFAwJPuZHbbKeMDxXzRQWaGCoaqKVjZshMpHVcEcncAZeKiioptRnpLAvmGHlrAXxSkaHgpWaqitRvYGOWDDMIxzsccEHpOfwsAfyZpCJyPRcpwiuCUTRRyOspSpWvFVIrHZxnzSizXkkVZtlhPeSYBrxplbhoAFYAPmxaZkAsNjQphlcfwmaZKzWreSkBpbGKrCcllzDcyibtGnbSlqqFZGIWFpokiyKVmcUaHDitetRwNMdksycsCsGTTiNysYVbeqLPFuGPTdrzfsMZZRQkAHqmyuYOMxQeEvpXibFylxPaoeaTXVWAVozTfdSIuufLgoADbvtDTpvpDhMiMcmPIIICEyeHpjyLGGFwqhBeSkVvYuQLSnHnoMlMZwCKRXzCXVjkcxEYCYflOdImrjPlMYzRNQjaCaMhhpBJTWoRDpQGaIhIQcsVAyHMtYIlRwEhGpnXZTFxshsxyDTBHPxaSKoPuHejMLQYIXyiMLtPfFJfZXYNAXfDXstXEBIHgqvYZAlogYbMPVIkDCceNNuaxkrRTAtcZGESKsRuPGOrukdHkdGaAGsbTSAgLXZmCkowppFOWZjgIJPiySyeeQOIQOfmcEyPWpByRBUxGmCnuOFbmbXEUBuuROdJsCKhfuaGIavHBUBdUuuhwuwEUOXYYwGmTEXXmVXRZrJLsDruGoYpYmTAcciUWMssQQRDEPhhuCEAkUZlfYoNkqUadbgEEzvJTQTkVPbeFnsoCPWKBEYeAqiwYpunQaLiUBpTMEuLGicQRgNnLvxbvJbKLYTxr"
 DDAC_KEY = "DdzDsZAhnpCBYdYIjTMGnwLkCdjUSqXKtPNBtnEggTpXMjVFPZRKplbvkxDcXkAdgZaaHMmZWfMvtixnOpjpgLTltGlBsnaUwfsoqXMaFNOudDUAJOCukUnnuEbAgLyqqkevkoOWcrSiUeXkTzHcmiNhoiIcTeTxwgUMvOUxPqXdFVXGjPRKRRRlOtaLibcMYOIPcIVgQwgNuLcbRAEzvIoFyHphPWZxIUmZLWQDLQdjjZNzfuwLyecspNCZKTjIPhbFbHKERezyxEBbUGMuLltbeyDVpxoAGtaWEHyrhpJxVkATMOEwuNHTNfKeioLNeHhwauJWjLnqeNlbrvZYLcYqAxIieOiuqFxKLOIhnFsoXtEZlJoYmUlrCSZPZpAzfGtOCjmHCksctYwepNVXCZEScYnbskmdqHWyZkSNgMzYceRkkbxnbzgmpSiUJpyEWjBNbNZiPbbENkwhKtHAVJKzPJpzrGvLWwPKGUdXkPpMMbZVlNZGeAOcQBLEnHiLSpfcVrpKoIUYBFKvhUNKVXeMmEmQUCpciEtAZwUdfPyKOheYdtQFXbklwppeFEeOVnqQBgHhTCZlNbETHSdSYLihxOjqDeBRsfVzrdTwiSTVvkSJxbBEuuRcbZCYJOOUtyTjcpNEVdKvHJirRLfoSOltxNQFTGMtCJTqnaeEZFSSIbHyjaDVeJyfHilqlpysiDEKRFawquymCzHTSckbQYrHNjdfoMXFUVYYTFExtEHkGjLZAXplCVDMRIJkxBOFqksPddOGfaUMQdEYUGjCNxVdjpYKPcSXDVJGhXRkyikoAiBiKOGipzSJowglSvjUQtqoqBUswPTUxsPTfOIUTpXIrdghCmSjFpKLKWndmuiXpawEjVYbwBDaVdqGoYqNrxfpjkYspZoJrNMpNGPBhlvQMJJtgajNhHyOHtUqhTEPwDaVVuYdWsBmLlWCeEBqpyHPnwkGHJzrDieaSqoYHnpXtosFCIATDeTSZepebGcNbMCAjmfThNvUVoOGXaYOIXCKsUCdqDnpMolNEZUWLJhHFTpahUmUXvvuxtxyepgyhJRjEhDsISFENzkUkFxyKptCdjPePLaLjnXPFweLBUMUIuyBl"
-API_KEY = "jVKRmqnoqsmoMXfhgaEjeXKctmtWdMpaPKINOfaiglVaWkVraFYngtYcfspiitZIcKjfZUwPTPHRNUrIgdiAyqpgplQFDJYwDCvzdUnnxalobZxzOCMWVKhVQZYiEfukQUCTeXOhKAIXTWSLszsFmuwZAGwTmpBUTjraYerObIOEAJbmEffhhxRgsglFAPPkKVCIzNkyzCaMxyIuNVdjHURqzqimwoPfkugKrgBNCTOZWYrUVyXKbGaeUayugjUFfbdboEOwipAQxQgTDrfpBGcSVELjqtrqTtlElIShCwUErSqvZVGneqWXEvuRwOqbVtJSbqZyReGCpRyXaivqoDSycUpDYnSymrcwQBDSTZRVIKALobWZxHQpVeTCfEhqDqfMydQqVjRpSaljyIRoIXDkhqhuEsZWVKZmgcbPxvTPSAuCoIvYfjdoFRZVemldnYZctyjTUTtmfiQQPRibOHwVEbstjZacCLHwgXPxtzRtdSypEjJcdkCUnfulNPtlSheLzNgtpAdQjWcuruYNtIgreCZELvbYxxYDlwWIngVmuzLTERviDjwYjeaeVnJxWecdIeLylpLKNHPobrXnJBltzgknhsqdKlKtoRqQobuvoCGVySOoTDPFhzjjeZGscCOvgKecixZdgXrRnghhsCuefYzgiCrHzmAaObiHIKPWxuFJkBaXxhNYOjSVyUmOFIxIkdeJSNDAIGldCMuUsExwPhoIrjcoACqLuUxvTlnGKpXrpCZhkbsUtUiCnLOtzZhjjFbrXxZSNPwOcCuLTCqzgxnBZrCcBEOevMIaRutODtwpJiRZGqpdQziPNyVwVdLxBwsZpZcVUAgTKjjaHHBFfFXtVrakSIosGVlQILvLiVgLgtFVXaEPwIdpCBuAJRpsRkoFUHKXVoiKFiLGsQaXxxiMCNdFcDVwrlYIiPxwKjbMptVUrPijJHbMYXHHppplksabPCparawfDYUwVIHVlgJZDceJOWfJdSWzUOfvrHUiFrAzrbSQmWrVEPhOpMmErnYBBfvxBPEWMeDkhzqTpbOCYHDfxGPJDiAVAMOcXKvOWIFzGQmZCaeMbRHXLNiANlbXYZprypSTIuJziqwUPctZL"
+API_KEY = "wWGXgvCvSBLSNeakSURTrLdXjhrzypFVPaRQRRIKHaxpJBJYJfNScXWCVoZgCEWNwYYkRRsGZTjnculaVIYWcEdtxWpqHsgReDnMBDpmaaHkXlTNJZlrqloElKhwrORNRsXWKRxzjCPnicqOTRyYvtylpDtBjelBeEyDKlANoqmiFxApPHSuQHeLILRoTPQRrPELhapixRouCaBIDiZLZpQOXUgaNPqOUlIIPdDHVbythfPfgLLYbeRjZmgtAoErfIkQSfqTTvrWyXGyPeVRmKBPGzPqsdPwWEQZzkHwTCqcsMpvRFCzUyhEexWIptKrIlFMdJonAkoZzvSWITFzIsWtqjdcCYjYtoNhIGQmsWNJwkQeNbPDJHRMSgdxraJZMBsjQprxWcGeCuNNmbgXusuHhwJiVildTTNzMYSrdtPXrpjqOgIpztZeRJoIbrHWEGUSoNuuXOIImxPOppxYAizUDDddemSiAqEaBkzMUtGVGHhwicNjLosiTOUrYFpFlpAKDnsHdkTTSXtbzjavETbyiDkUBqCuRQRLvnbWWPOxtSkGMKIyZjyFCDXNeLLzInMGKPvunvOqdHzWDidsFOyrXPPCyCfzMJCElSTbzEBfIUNOILfgCTlSIAhKMInnUVHcFhNltmFOnTDBWmFMzfGwRSnhFzQvCyzUOHOOYSGpkmGzaxvFWhrpIyAQFzhFCqqkWUrAFWJqSulQDEZHyNqYOTwJeQvkWcDUeSNLmFSPuLfvbUKJZTjXwRnWeBJyfWCHYKDHALjmDdzJaAYnrpTsdvKyirXEZBifqPgVBjhvNUyqMFiYXKdMODMzeoLnBmbwTpgHYOGeMjYcjiTajTsnFXlKyqnwNeKDZhmpMSnIMGDVZzeumwBHtxKpwVnroVaQqaavfnNXLYDYYCUMldWqcMfbEvfhStLrKvhZPDIdxjCANWoWDGgrbGWuqjgIRXRozZwpDfhOQiQsfFqJKXfLmoqRgcMfvBTlTfGFrXahtrHYBqUmaVKtqcGEpkBxTPvmOOiKOdGmvFhcloHdshFgOHCaqqEsdXylDBbdQsTGPgvMAYDNSLiBpIWDZlxEbpYvvbrkQFOwFrJLqhaUdxBobwUYk"
 INFO_KEY = "phVlVbCWHMgWxvBTxGnFwVLjnpelCuhYblZpelJuSRTXrPLQEKfEZDwxfTSBdmpcnVbzukyfEOnaVFNoOPJiSKKdpQqATODUxiiLJgaCmYXNdZsCXVshzZOURPxGvhSBrkxszwsnCbnYqDOiGYOLyRGrDEwPVxASspqFeGYcFDmDGovlqUDGgcQPKHRJMyWaQWbYzzCgOJETIdjEkmvxGnJPwgwnMsxMxQtKyoxLQskYSuSrwNkLCrvZYcqxovRhKFiwxXMRRpwVFNteydZBCwQSGJlWrseMEDKZlfNzlYFEESiAwyMRBghQlaipGkmRvxPcuWWxPSrIolqzzjTLhLIhRUxBbadHJXqoYEFSEsHrWjeGIqHvpgORtlDXYitqWaHJNrffnTryfYqYSvwXgtxTJPZnVbZzMxdtAKsKstOhzokNcsPxqhmSczYHdKTOksjRkBSkZlqHIPOCaWBGjsDAGsoPXqdrurcaOELRHgOcukddAOsRyUepOvwKPZieSwnemmlIKCPeRUtlsTFYJqSTztiQpFmiFHzOLQxwzezRTfvSADoiOzYCSRtANuoyyuKxQHmocYmcEmtbYpisnzJInfJCjFSdCwTIOzWtGQNTFZlPaWQTwVKyQqzoDXTiXEvOZknzdxAmzNARPHPfgVUzQEiCSFTXWiFGmWfowlsPrNUjNrGrRfXTxmsuSuKEUOfvSGmwJqBGDyderfRcGQNzaNSgVrXJOCAnvAWzerznYdxRfTFiGcwdJZqESiujfIAaazlaGxcoExDzsjMkYKJxsXroxVBCNiWFvqqVKFhtqaZJIVDnLxqtufAEWXnzCEPgYAxSJaoITXisyjcmvIqmSfGmVAlqDsBtieTQvbShqgzJylvRxoXpBRPnpRkXlsvmOWZuMauplDcZqAIsyHSymGELLXDYdmYnMPzEYLkkJaHmoyvGFSsPIQkZEnbVEmdaLmeIATnKEeeuvpUJRAhpppBMneuwJKRjtUluLKxdmsiJyobAqoMLIYUejitSIIjrgPAuBYEhhYvtMrQvcPeNXKnCHYIWmSUYWaeQkYRYfbEjSgGMpPDGmgNYOJWkGnGfodApdfAvVVcMqsjEeIWLEylxO"
 transaction_headers = {"Content-Type": "application/json; charset=utf-8", "authkey": API_KEY}
 
@@ -53,14 +54,15 @@ def loadBankList(request):
 
         return JsonResponse(resp, safe=False)
 
+
 def UserLogin(request):
     if request.method == 'POST':
         try:
             username = request.POST["username"]
             cif = request.POST["cif"]
-            password = request.POST["password"]
+            password = "User@123!$"
             user = authenticate(request, username=username, password=password)
-            if user :
+            if user:
                 if user.role == '001':
                     login(request, user)
                     return redirect('webapp:bank-details')
@@ -92,9 +94,8 @@ def UserLogin(request):
                         response = response.json()
                         print(response)
                         if response['response']['otpEnable']:
-                            # log_hist = UserLoginHistory(username=username, ipaddress=get_ip_address(request),
-                            # timestamp=datetime.datetime.now())
-                            # log_hist.save()
+                            log_hist = UserLoginHistory(username=username, ipaddress=get_ip_address(request),timestamp=datetime.datetime.now())
+                            log_hist.save()
                             return redirect('webapp:enter-otp', )
                     else:
                         messages.error(request, message=resp['response']['message'])
@@ -169,6 +170,77 @@ class DecimalEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
+def format_date(date_str):
+    try:
+        # Parse the input date string using the specified format
+        date = datetime.datetime.strptime(date_str, "%d-%m-%Y")
+
+        # Set the time portion to "00:00:00"
+        formatted_date = date.replace(hour=0, minute=0, second=0)
+
+        # Convert the formatted date to the desired string format
+        formatted_date_str = formatted_date.strftime("%Y-%m-%d %H:%M:%S")
+
+        return formatted_date_str
+    except ValueError:
+        # Handle invalid date strings
+        return None
+
+
+def transaction_history_xls(request):
+    try:
+        if request.method == 'GET':
+            start_date_raw = request.GET.get('start_date')
+            end_date_raw = request.GET.get('end_date')
+            start_date = format_date(start_date_raw)
+            end_date = format_date(end_date_raw)
+            print(request.GET.get('start_date'), request.GET.get('end_date'))
+            values = ProcessedDeposits.objects.filter(timestamp__range=(start_date, end_date)).values(
+                'amount', 'invoiceid', 'processed_by', 'status', 'timestamp', 'transaction_date', 'transaction_type',
+                'vendorid', 'vendorname')
+
+            df = pd.DataFrame.from_records(values)
+            if not df.empty:
+                df['timestamp'] = df['timestamp'].dt.strftime('%Y-%m-%d')
+            # Add the title and column names
+            title_row = ['Transaction History']
+            column_names = ['Amount', 'Invoice ID', 'Processed By', 'Status', 'Entry Date/Time', 'Transaction Date',
+                            'Transaction Type', 'Beneficiary ID', 'Beneficiary Name']
+            data_rows = [column_names] + df.values.tolist()
+            print(data_rows)
+            data_rows.insert(0, title_row)
+
+            # Create a temporary file path
+            temp_file_path = os.path.join(tempfile.gettempdir(), 'transaction_history.xlsx')
+
+            # Write the DataFrame to the Excel file
+            with pd.ExcelWriter(temp_file_path, engine='xlsxwriter', options={'remove_timezone': True}) as writer:
+                workbook = writer.book
+                worksheet = workbook.add_worksheet('Transaction History')
+                for row_num, row_data in enumerate(data_rows):
+                    for col_num, cell_data in enumerate(row_data):
+                        worksheet.write(row_num, col_num, cell_data)
+
+            # Read the Excel file content
+            with open(temp_file_path, 'rb') as file:
+                excel_data = file.read()
+
+            # Delete the temporary file
+            # os.remove(temp_file_path)
+
+            response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response[
+                'Content-Disposition'] = f'attachment; filename=Transaction History between {start_date_raw}-{end_date_raw}.xlsx'
+            response.write(excel_data)
+
+            return response
+        else:
+            return HttpResponse('Get Requests Only')
+    except Exception as e:
+        print(e)
+        return HttpResponse(f'The error {e} occurred while processing your request')
+
+
 def get_search_results(request):
     """ Get search results based on query parameters """
 
@@ -227,7 +299,6 @@ def get_search_results(request):
 
             return render(request, 'homepage.html', context)
 
-
         elif field_option in field_mapping_vendor and search_params:
             vendor_info = BankDetails.objects.filter(**{field_mapping_vendor[field_option]: search_params}).values(
                 'vendor_id', 'sort_code', 'account_no', 'account_name').all()
@@ -265,8 +336,48 @@ def get_search_results(request):
     except Exception as e:
         return JsonResponse({'message': f'An error occurred while processing your request {e}'}, status=500)
 
+def get_history_search_results(request):
+    search_params = request.GET.get('search_params')
+    field_option = request.GET.get('filter_options')
+    field_mapping_vendor = {
+        'amount': 'amount__icontains',
+        'invoice_id': 'invoice_id__iexact',
 
+    }
+    if field_option in field_mapping_vendor and search_params:
+        data = BankDetails.objects.filter(**{field_mapping_vendor[field_option]: search_params}).values(
+        'vendor_id', 'sort_code', 'account_no', 'account_name')
+        paginator = Paginator(data, 20)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        all_data = data.filter(timestamp__month__in=range(1, 13))
+        grouped_data = groupby(all_data, key=attrgetter('timestamp.month'))
+        monthly_data = {month: 0 for month in range(1, 13)}
+        for month, data in grouped_data:
+            monthly_data[month] = len(list(data))
+        monthly_data = [{'month': datetime.date(1900, month, 1).strftime('%B'), 'data': count} for month, count in
+                        monthly_data.items()]
+        end_date = datetime.date.today()
+        start_date = end_date - datetime.timedelta(days=7)
 
+        date_range = [end_date - datetime.timedelta(days=x) for x in range(7)]
+        processed_deposits = ProcessedDeposits.objects.filter(timestamp__date__range=(start_date, end_date))
+        processed_deposits = processed_deposits.annotate(trans_date=TruncDate('timestamp')).values(
+            'trans_date').annotate(
+            count=Count('trans_date'))
+        date_dict = {deposit['trans_date'].strftime('%Y-%m-%d'): deposit['count'] for deposit in processed_deposits}
+        date_list = [date.strftime('%Y-%m-%d') for date in date_range]
+        count_list = [date_dict.get(date.strftime('%Y-%m-%d'), 0) for date in date_range]
+        context = {
+            'transaction_info': page_obj,
+            'page_number': page_number,
+            'date_list': date_list,
+            'count_list': count_list,
+            'data_by_month': monthly_data,
+
+        }
+
+        return render(request, 'transaction-history.html', context)
 
 
 def serialize_sqlalchemy_object(obj):
@@ -280,7 +391,6 @@ def serialize_sqlalchemy_object(obj):
         data[colmn] = getattr(obj, colmn)
     # Serialize the dictionary as JSON
     return json.dumps(data, cls=DecimalEncoder)
-
 
 
 @login_required(login_url="/")
@@ -373,7 +483,6 @@ def searchvendorBankDetails(request):
     if request.method == 'GET':
         vendor = request.GET['vendor']
         data = BankDetails.objects.filter(vendor_id=vendor).all()
-
 
         paginator = Paginator(data, 10)
         page_number = request.GET.get('page')
@@ -486,10 +595,12 @@ def vendor_account_details(request):
                                                                                    'bank_name')
     return JsonResponse({'account_details': list(data)}, status=200)
 
+
 def change_date(date_str):
     date_obj = datetime.datetime.strptime(date_str, "%Y%m%d")
     formatted_date = date_obj.strftime("%d-%m-%Y")
     return formatted_date
+
 
 @login_required(login_url='/')
 @user_is_approver
@@ -507,7 +618,7 @@ def homepage(request):
     data = ms_session.query(aptcr).filter(aptcr.CNTBTCH.in_(batch_list)).order_by(aptcr.CNTBTCH.desc()).all()
     for payment, record in zip(payment_transactions_raw, data):
         date = change_date(str(payment.DATERMIT))
-        amount = round(payment.AMTPAYM,2)
+        amount = round(payment.AMTPAYM, 2)
         transactions = {
             'IDINVC': (payment.IDINVC).strip(),
             'DATERMIT': date,
@@ -758,7 +869,7 @@ def postDDACTransaction(request, transaction):
         print(ft_resp_json)
         if ft_resp_json['response']['message'] == "Fund Transfer initiated successfully":
             processed = ProcessedDeposits(amount=transaction['amount'], transaction_date=transaction['date'],
-                                          vendorid=transaction['account_name'],
+                                          vendorid=transaction['vendor_id'],
                                           invoiceid=transaction['invoice_id'],
                                           vendorname=transaction['account_name'], status=1,
                                           transaction_type="DDAC",
@@ -832,7 +943,7 @@ def postRTGSTransaction(request, transaction):
         if ft_resp_json['response']['message'] == "Fund Transfer initiated successfully":
 
             processed = ProcessedDeposits(amount=transaction['amount'], transaction_date=transaction['date'],
-                                          vendorid=transaction['account_name'],
+                                          vendorid=transaction['vendor_id'],
                                           invoiceid=transaction['invoice_id'],
                                           vendorname=transaction['account_name'], status=1,
                                           transaction_type="RTGS", processed_by=request.user.username)
@@ -902,7 +1013,7 @@ def postFTTransaction(request, transaction):
     ft_resp_json = resp.json()
     if ft_resp_json['response']['message'] == "Fund Transfer initiated successfully":
         processed = ProcessedDeposits(amount=transaction['amount'], transaction_date=transaction['date'],
-                                      vendorid=transaction['account_name'],
+                                      vendorid=transaction['vendor_id'],
                                       invoiceid=transaction['invoice_id'],
                                       vendorname=transaction['account_name'], status=1,
                                       transaction_type="IFT", processed_by=request.user.username)

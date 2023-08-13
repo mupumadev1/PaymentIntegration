@@ -1,4 +1,4 @@
-const processBtn = document.getElementById('process-btn');
+const processBtn = document.getElementById('process-btn')
 const searchBtn = document.getElementById('search-button');
 const modalSubmitBtn = document.getElementById('modal-submit-btn');
 const loader = document.getElementById('spinner')
@@ -6,7 +6,12 @@ const rows = document.querySelectorAll('#table-body tr');
 const checkboxes = document.querySelectorAll('input[type="checkbox"]');
 const searchInput = document.getElementById('search-input');
 const filterOptions = document.getElementById('filter-options');
+const startDateInput = document.getElementById('datepicker1');
+const endDateInput = document.getElementById('datepicker2');
 
+var isScrolledToTop = true;
+let isStartDateEmpty = true;
+let isEndDateEmpty = true;
 let selectedVendorsInvoiceNumber = [];
 let selectedPageNumber = 1;
 let numberOfPages = 0;
@@ -21,7 +26,6 @@ addCheckBoxandSelectValues(rows);
 addEventListenerToCheckboxes(checkboxes);
 addEventListenerToAnchorTag();
 addEventListenersToSelect(rows)
-
 
 function addEventListenersToSelect(rows) {
     rows.forEach(row => {
@@ -140,8 +144,6 @@ function addEventListenerToCheckboxes(checkboxes) {
 
     })
 }
-
-var isScrolledToTop = true;
 
 function scrollToTopOrBottom() {
     if (isScrolledToTop) {
@@ -304,35 +306,6 @@ function updateTableAndPaginator(html) {
     // Add any other necessary post-update operations
 }
 
-searchBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    hasClickedOnSearchBtn = true;
-    query_params = [searchInput.value, filterOptions.value];
-
-    fetchSearchResults(query_params, selectedPageNumber);
-})
-
-
-filterOptions.addEventListener('change', () => {
-    searchInput.removeAttribute('readonly');
-
-    if (filterOptions.value === 'date') {
-        // Destroy any existing Flatpickr instance
-        if (searchInput._flatpickr) {
-            searchInput._flatpickr.destroy();
-        }
-        searchInput._flatpickr = flatpickr(searchInput, {
-            dateFormat: 'Ymd',
-
-        });
-    } else {
-        // Destroy Flatpickr if it's not the "date" option
-        if (searchInput._flatpickr) {
-            searchInput._flatpickr.destroy();
-        }
-    }
-});
-
 function fetchSearchResults(queryParams, page) {
     const searchInput = queryParams[0];
     const filterOptions = queryParams[1];
@@ -370,58 +343,36 @@ function fetchSearchResults(queryParams, page) {
             console.error('Error fetching search results:', error);
         });
 }
+function fetchHistorySearchResults(queryParams, page) {
+    const historySearchInput = queryParams[0];
+    const historyFilterOptions = queryParams[1];
 
-
-modalSubmitBtn.addEventListener('click', (e) => {
-    loader.classList.remove('d-none')
-    e.preventDefault()
-///    // Send selected invoice numbers & transaction type to server using ajax
-    $.ajax({
-        type: 'POST',
-        url: 'post-transactions/',
-        data: {
-            'csrfmiddlewaretoken': getCSRFToken(),
-            'transactions': JSON.stringify(combinedValues),
-            'invoice_ids[]': JSON.stringify(selectedVendorsInvoiceNumber),
-            'transaction_type': JSON.stringify(selectedTransactionType),
-            //'account_name':JSON.stringify(selectedAccountName)
-        },
-        dataType: 'json',
-    }).then(res => {
-        loader.classList.add('d-none')
-        if (res.stats !== 200) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Your Request Could Not Be processed:',
-                text: res.resps,
-                confirmButtonText: "OK",
-                timer: 2000,
-                footer: 'Try Again Later'
-            })
-            $('#post-transaction-modal').modal('hide');
-        } else {
-            Swal.fire({
-                icon: 'success',
-                title: 'Your Request Has Been Successfully Processed:',
-                confirmButtonText: "OK",
-                timer: 2000,
-                text: res.resps,
-            }).then(() => {
-                window.location.href = 'dashboard';
-            });
-        }
-
-    }).catch(err => console.log(err));
-
-});
-
-processBtn.addEventListener('click', (e) => {
-
-    e.preventDefault();
-    createModalTableBody('modal-table-body');
-
-});
-
+    fetch(`history_search/?search_params=${historySearchInput}&filter_options=${historyFilterOptions}&page=${page}`)
+        .then(response => response.text())
+        .then(html => {
+            // Parse the HTML response
+            const parser = new DOMParser();
+            const newDoc = parser.parseFromString(html, 'text/html');
+            const newChart = newDoc.getElementById('chart-div')
+            // Get the new HTML elements
+            const newTable = newDoc.getElementById('table-body');
+            const newPaginator = newDoc.getElementById('paginator');
+            numberOfPages = parseInt(newPaginator.dataset.numPages);
+            console.log(numberOfPages, selectedPageNumber)
+            const chart = document.getElementById('chart-div')
+            // Replace the existing table and paginator with the new ones
+            const tableBody = document.getElementById('table-body');
+            const paginator = document.getElementById('paginator');
+            chart.replaceWith(newChart);
+            tableBody.replaceWith(newTable);
+            paginator.replaceWith(newPaginator)
+            console.log(newPaginator)
+            updatePaginationLinks(newPaginator);
+        })
+        .catch(error => {
+            console.error('Error fetching search results:', error);
+        });
+}
 // Add event listener to change page links
 
 function getCSRFToken() {
@@ -508,5 +459,78 @@ function firstPageLink(firstLink) {
 }
 
 
+processBtn.addEventListener('click', (e) => {
 
+    e.preventDefault();
+    createModalTableBody('modal-table-body');
 
+});
+modalSubmitBtn.addEventListener('click', (e) => {
+    loader.classList.remove('d-none')
+    e.preventDefault()
+///    // Send selected invoice numbers & transaction type to server using ajax
+    $.ajax({
+        type: 'POST',
+        url: 'post-transactions/',
+        data: {
+            'csrfmiddlewaretoken': getCSRFToken(),
+            'transactions': JSON.stringify(combinedValues),
+            'invoice_ids[]': JSON.stringify(selectedVendorsInvoiceNumber),
+            'transaction_type': JSON.stringify(selectedTransactionType),
+            //'account_name':JSON.stringify(selectedAccountName)
+        },
+        dataType: 'json',
+    }).then(res => {
+        loader.classList.add('d-none')
+        if (res.stats !== 200) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Your Request Could Not Be processed:',
+                text: res.resps,
+                confirmButtonText: "OK",
+                timer: 2000,
+                footer: 'Try Again Later'
+            })
+            $('#post-transaction-modal').modal('hide');
+        } else {
+            Swal.fire({
+                icon: 'success',
+                title: 'Your Request Has Been Successfully Processed:',
+                confirmButtonText: "OK",
+                timer: 2000,
+                text: res.resps,
+            }).then(() => {
+                window.location.href = 'dashboard';
+            });
+        }
+
+    }).catch(err => console.log(err));
+
+});
+
+searchBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    hasClickedOnSearchBtn = true;
+    query_params = [searchInput.value, filterOptions.value];
+
+    fetchSearchResults(query_params, selectedPageNumber);
+})
+filterOptions.addEventListener('change', () => {
+    searchInput.removeAttribute('readonly');
+
+    if (filterOptions.value === 'date') {
+        // Destroy any existing Flatpickr instance
+        if (searchInput._flatpickr) {
+            searchInput._flatpickr.destroy();
+        }
+        searchInput._flatpickr = flatpickr(searchInput, {
+            dateFormat: 'Ymd',
+
+        });
+    } else {
+        // Destroy Flatpickr if it's not the "date" option
+        if (searchInput._flatpickr) {
+            searchInput._flatpickr.destroy();
+        }
+    }
+});

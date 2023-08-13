@@ -9,11 +9,25 @@
 {% block content %}
     {% include 'partials/transactions/date-selector-modal.html' %}
     <div class="container">
-        <button onclick="scrollToTopOrBottom()" class="btn btn-outline-dark shadow" data-mdb-ripple-color="dark"
-                style=" background:  #0B0B45; border-radius: 50%; position: fixed;right: 30px;top: 90%;transform: translateY(-50%);">
-            <i class="bi bi-arrow-down-up text-white h5 "></i></button>
-        <h2 class="text-lg-center pt-4 pb-4" style="font-family: 'Roboto Slab',serif;"> Transaction History</h2>
-        <div class="row mt-4 mb-4">
+        {% include 'partials/transactions/scroller.html' %}
+        <div class="row mt-5 mb-2">
+
+            <div class="col d-flex justify-content-start pl-0"><h3 style="font-weight: bold"> Transaction History</h3>
+            </div>
+            <div class="col d-flex justify-content-end pr-0">
+                <div class="mr-auto">
+                    <button type="button" style="background-color: #183660;border-radius: 50px; "
+                            class="btn text-white btn-md"
+                            data-bs-toggle="modal"
+                            data-bs-target="#date-selector-modal"><i class="bi bi-filetype-xls"></i>
+                    </button>
+                    <button class="btn btn-md text-white" id="toggle-btn"
+                            style="background-color: #183660 ;border-radius:50px;"><i class="bi bi-toggle-on"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-4 mb-4" id="chart-div">
             <div class="col">
                 <div class="card shadow-sm border-0 p-2">
                     <canvas id="lineGraph" style="height: 250px;"></canvas>
@@ -28,13 +42,6 @@
         <div class="row">
             <div class="col">
                 <div class="card shadow-sm border-0 p-2">
-                    <div class="text-end">
-                        <button type="button" style="background-color: #121271; "
-                                class="btn mt-1 text-white btn-sm text-left"
-                                data-bs-toggle="modal"
-                                data-bs-target="#date-selector-modal">Generate Report
-                        </button>
-                    </div>
                     <table class="table table-hover mt-3 ">
                         <thead>
                         <tr>
@@ -75,8 +82,16 @@
 
 {% block extra-scripts %}
     <script>
+        $(document).ready(function () {
+            $("#toggle-btn").click(function () {
+                $("#chart-div").toggle();
+            })
+        })
+    </script>
+    <script>
         datepicker1 = document.getElementById('datepicker1')
         datepicker2 = document.getElementById('datepicker2')
+        const exportButton = document.getElementById('modal-submit-button');
 
         flatpickr(datepicker2, {
             dateFormat: "d-m-Y"
@@ -84,6 +99,27 @@
         flatpickr(datepicker1, {
             dateFormat: "d-m-Y"
         });
+        datepicker1.addEventListener('input', (e) => {
+            isStartDateEmpty = false;
+            if (isStartDateEmpty === false && isEndDateEmpty === false) {
+                exportButton.removeAttribute('disabled');
+            }
+        });
+
+        datepicker2.addEventListener('input', (e) => {
+            isEndDateEmpty = false;
+            if (isStartDateEmpty === false && isEndDateEmpty === false) {
+                exportButton.removeAttribute('disabled');
+            }
+        });
+
+        exportButton.addEventListener('click', () => {
+
+            window.location.href = `/download?start_date=${datepicker1.value}&end_date=${datepicker2.value}`;
+            location.reload();
+
+        });
+
     </script>
     <script>
         function hideModal() {
@@ -107,8 +143,8 @@
                     labels: monthLabels,
                     datasets: [{
                         label: 'Number of Transactions',
-                        backgroundColor: "#0B0B45",
-                        borderColor: "#417690",
+                        backgroundColor: "#183660",
+                        borderColor: "#124271",
                         data: dataPoints,
 
                     }]
@@ -132,8 +168,8 @@
                     labels: [{% for date_list in date_list %}'{{ date_list|safe }}',{% endfor %}],
                     datasets: [{
                         label: 'Number of Transactions',
-                        backgroundColor: "#0B0B45",
-                        borderColor: "#417690",
+                        backgroundColor: "#183660",
+                        borderColor: "#124271",
                         data: [{% for count_list in count_list %}{{ count_list|safe }}, {% endfor %}],
 
                     }]

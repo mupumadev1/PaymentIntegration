@@ -6,13 +6,12 @@
         <div class="container pt-5">
             <div class="row mb-3 ">
                 <div class="pb-5 ">
-                    <h3 style="position: absolute;left: 100px;font-weight: 600;font-size: 28px;font-family: Roboto, serif;">AP Vendors</h3>
+                    <h3 style="position: absolute;left: 100px;font-weight: 600;font-size: 28px;">AP Vendors</h3>
                     <form style="position: absolute;right: 100px;">
-                        <div class="input-group">
+                        <div class="search-bar">
                             <input type="text" placeholder="Search by ID" id="vendor-search" name="vendor-search"
-                                   class="form-control-sm text-end">
-                            <button class="btn text-white" type="button" id="search-button"
-                                    style="background-color: #0B0B45;">
+                                   >
+                            <button class="btn text-white" type="button" id="search-button">
                                 <i class="fa fa-search"></i>
                             </button>
                         </div>
@@ -20,7 +19,7 @@
                 </div>
                <div class="card p-2 mt-5 shadow-sm border-0">
                 <table class="table table-hover mt-3 " style="table-layout: fixed;">
-                    <thead class="text-center" style="font-family: 'Roboto Slab', serif">
+                    <thead class="text-center" >
                     <tr>
                         <th scope="col">Account No</th>
                         <th scope="col">Account Name</th>
@@ -44,10 +43,10 @@
                                 <td id="vendor_acc">{{ details.sort_code }}</td>
                                 <td>{{ details.branch }}</td>
                             <td>
-                                <a class="btn btn-sm text-white" href="{% url 'webapp:edit-bank-details' acc_id=details.account_no%}" style="background-color: #121271">
+                                <a class="btn btn-sm text-white" href="{% url 'webapp:edit-bank-details' acc_id=details.account_no%}" style="background-color: #183660; border-radius: 50px">
                                     Edit
                                 </a>
-                                <a class="btn btn-dark btn-sm" href="{% url 'webapp:delete' acc_no=details.account_no %}">
+                                <a class="btn btn-dark btn-sm" style="border-radius: 50px" href="{% url 'webapp:delete' acc_no=details.account_no %}">
                                    Delete
                                 </a>
                             </td>
