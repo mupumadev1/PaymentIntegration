@@ -11,9 +11,10 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 import os
 from pathlib import Path
-
+from dotenv import load_dotenv
 import webapp
 
+load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -21,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-vkvo1&sxxt!r(a44-z)87faxz@9x#@5gjtvc5)_()e=+*@ldfk'
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -39,6 +40,10 @@ INSTALLED_APPS = [
     'webapp',
     'widget_tweaks',
     'django_htmx'
+]
+AUTHENTICATION_BACKENDS = [
+    'webapp.backends.authBackend.RoleBackend',
+    'django.contrib.auth.backends.ModelBackend'
 ]
 AUTH_USER_MODEL = 'webapp.Users'
 MIDDLEWARE = [
@@ -79,10 +84,10 @@ WSGI_APPLICATION = 'PaymentIntegration.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'payment_integration',
-        'USER': 'saservice',
-        'PASSWORD': 'mJ@PcJ!pNVs2*AW',
-        'HOST': '10.51.11.183',
+        'NAME': os.getenv('DATABASE_NAME'),
+        'USER': os.getenv('DATABASE_USER'),
+        'PASSWORD': os.getenv('DATABASE_PASSWORD'),
+        'HOST': os.getenv('DATABASE_SERVER_HOST'),
         'PORT': '3306'
 
     }
@@ -124,7 +129,14 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
 ]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-#SESSION_COOKIE_AGE = 1200  # 5 minutes
+SESSION_COOKIE_AGE = 1200  # 5 minutes
+#SECURE_SSL_REDIRECT = True
+
+#SESSION_COOKIE_SECURE = True
+
+#CSRF_COOKIE_SECURE = True
+
+#SECURE_BROWSER_XSS_FILTER = True
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

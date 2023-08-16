@@ -60,7 +60,7 @@ def UserLogin(request):
         try:
             username = request.POST["username"]
             cif = request.POST["cif"]
-            password = "User@123!$"
+            password = request.POST["password"]
             user = authenticate(request, username=username, password=password)
             if user:
                 if user.role == '001':
